@@ -11,7 +11,7 @@ defmodule ExpressLrs.Mavlink.Connector do
 
   def init(%{uart_port: uart_port, uart_baud_rate: uart_baud_rate}) do
     {:ok, uart_pid} = UART.start_link
-    :ok             = UART.open(uart_pid, uart_port, speed: uart_baud_rate |> IO.inspect, active: true)
+    :ok             = UART.open(uart_pid, uart_port, speed: uart_baud_rate, active: true)
     {:ok, %State{
         uart_pid: uart_pid,
         uart_port: uart_port
@@ -28,5 +28,15 @@ defmodule ExpressLrs.Mavlink.Connector do
   def handle_info({:circuits_uart, _tty, data}, state) do
     Parser.new_bytes(data)
     {:noreply, state}
+  end
+
+  def handle_cast({:change_baud_rate, baud_rate}, state) do
+    UART.configure(state.uart_pid, speed: baud_rate |> IO.inspect)
+    Parser.new_baud_rate(baud_rate)
+    {:noreply, state}
+  end
+
+  def change_baud_rate(baud_rate) do
+    GenServer.cast(__MODULE__, {:change_baud_rate, baud_rate})
   end
 end
